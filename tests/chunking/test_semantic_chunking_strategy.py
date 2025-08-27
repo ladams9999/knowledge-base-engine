@@ -1,4 +1,3 @@
-import pytest
 from src.chunking.text_chunker import SemanticChunkingStrategy
 
 class DummyEmbeddingGenerator:

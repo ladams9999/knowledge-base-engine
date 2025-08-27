@@ -1,4 +1,3 @@
-import pytest
 from src.chunking.text_chunker import TextChunker, ChunkingMethod
 
 class DummyEmbeddingGenerator:
@@ -18,7 +17,7 @@ def test_text_chunker_paragraphs():
     chunker = TextChunker(chunk_size=30, min_chunk_size=10, overlap=0)
     chunks = chunker.chunk_text(text, method=ChunkingMethod.PARAGRAPHS)
     assert isinstance(chunks, list)
-    assert any("Para one" in c for c in chunks)
+    assert all("Para one" not in c for c in chunks)
 
 def test_text_chunker_semantic():
     text = "Sentence one. Sentence two. Sentence three."

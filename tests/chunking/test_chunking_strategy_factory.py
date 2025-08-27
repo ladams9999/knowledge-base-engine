@@ -1,5 +1,5 @@
 import pytest
-from src.chunking.text_chunker import ChunkingStrategyFactory, ChunkingMethod, SentenceChunkingStrategy, ParagraphChunkingStrategy, SemanticChunkingStrategy, GradientChunkingStrategy, AdaptiveChunkingStrategy
+from src.chunking.text_chunker import ChunkingStrategyFactory, ChunkingMethod, SentenceChunkingStrategy, ParagraphChunkingStrategy, SemanticChunkingStrategy
 
 def test_factory_returns_correct_strategy():
     s = ChunkingStrategyFactory.get_strategy(ChunkingMethod.SENTENCES, 100, 10, 0)

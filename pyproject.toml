@@ -29,3 +29,8 @@ process-embeddings = "text_embeddings_processor:main"
 query-embeddings = "query_embeddings:main"
 chunking-demo = "chunking_demo:main"
 test-embeddings = "test_embeddings:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+]

@@ -1,0 +1,31 @@
+[project]
+name = "knowledge-base-engine"
+version = "0.1.0"
+description = "Advanced text processing and embeddings system with semantic chunking, PostgreSQL storage, and Ollama integration"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    # Database connectivity
+    "psycopg2-binary>=2.9.9",
+    "pgvector>=0.3.6",
+    
+    # HTTP client for Ollama API
+    "requests>=2.32.5",
+    
+    # Advanced chunking dependencies
+    "numpy>=1.21.0",
+    "scikit-learn>=1.0.0",
+    "spacy>=3.4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.scripts]
+process-embeddings = "text_embeddings_processor:main"
+query-embeddings = "query_embeddings:main"
+chunking-demo = "chunking_demo:main"
+test-embeddings = "test_embeddings:main"

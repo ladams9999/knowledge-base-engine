@@ -10,11 +10,8 @@ import argparse
 import logging
 import sys
 import os
-from typing import List, Optional, Dict, Any
+from typing import Optional, Dict
 from datetime import datetime
-import requests
-import psycopg2
-from psycopg2.extras import RealDictCursor
 import hashlib
 from src.config.config import Config
 from src.storage.postgres import PostgresEmbeddingStorage
@@ -110,16 +107,6 @@ class TextEmbeddingsProcessor:
         except Exception as e:
             logger.error(f"Error processing file {filepath}: {e}")
             return False
-
-
-def load_config(config_file: str) -> Dict[str, Any]:
-    """Load configuration from JSON file."""
-    try:
-        with open(config_file, "r") as f:
-            return json.load(f)
-    except Exception as e:
-        logger.error(f"Error loading config file {config_file}: {e}")
-        return {}
 
 
 def main():

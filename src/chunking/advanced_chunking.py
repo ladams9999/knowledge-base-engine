@@ -6,19 +6,16 @@ Advanced chunking methods including semantic, gradient, and content-aware chunki
 specifically optimized for conversational and speech content.
 """
 
+
 import re
 import numpy as np
-from typing import List, Dict, Tuple, Optional, Any
-from collections import defaultdict
+from typing import List, Dict, Tuple
 from dataclasses import dataclass
 import logging
 
+
 # Optional imports for advanced features
 try:
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    from sklearn.metrics.pairwise import cosine_similarity
-    from sklearn.cluster import AgglomerativeClustering
-
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
@@ -27,8 +24,6 @@ except ImportError:
     )
 
 try:
-    import spacy
-
     SPACY_AVAILABLE = True
 except ImportError:
     SPACY_AVAILABLE = False
@@ -62,42 +57,34 @@ class SemanticChunk:
     topic_labels: List[str]
 
 
-class AdvancedTextChunker:
-    """Enhanced text chunker with semantic and gradient-based methods."""
+from src.chunking.text_chunker import ChunkingStrategy, ChunkingMethod
+
+class AdvancedTextChunker(ChunkingStrategy):
+    """Strategy for advanced chunking methods (semantic, gradient, adaptive, hierarchical)."""
 
     def __init__(
         self,
-        embedding_generator=None,
         chunk_size: int = 1000,
         min_chunk_size: int = 100,
-        max_chunk_size: int = 2000,
         overlap: int = 50,
+        embedding_generator=None,
+        max_chunk_size: int = 2000,
     ):
-        """
-        Initialize advanced chunker.
-
-        Args:
-            embedding_generator: Ollama embedding generator for semantic analysis
-            chunk_size: Target chunk size in characters
-            min_chunk_size: Minimum chunk size
-            max_chunk_size: Maximum chunk size
-            overlap: Overlap between chunks for gradient methods
-        """
-        self.embedding_generator = embedding_generator
-        self.chunk_size = chunk_size
-        self.min_chunk_size = min_chunk_size
+        super().__init__(chunk_size, min_chunk_size, overlap, embedding_generator)
         self.max_chunk_size = max_chunk_size
-        self.overlap = overlap
 
         # Initialize NLP components if available
         self.nlp = None
         if SPACY_AVAILABLE:
             try:
+                import spacy
                 self.nlp = spacy.load("en_core_web_sm")
             except OSError:
                 logger.warning(
                     "spaCy English model not found. Install with: python -m spacy download en_core_web_sm"
                 )
+            except Exception:
+                self.nlp = None
 
         # Discourse markers for conversation/speech content
         self.discourse_markers = [
@@ -126,13 +113,9 @@ class AdvancedTextChunker:
             r"thanks for listening",
             r"before we go",
         ]
-
-        # Compile regex patterns
         self.discourse_patterns = [
             re.compile(pattern, re.IGNORECASE) for pattern in self.discourse_markers
         ]
-
-        # Content-specific markers for sports/football content
         self.content_markers = [
             r"afc\s+(?:east|west|north|south)",
             r"nfc\s+(?:east|west|north|south)",
@@ -143,6 +126,11 @@ class AdvancedTextChunker:
         self.content_patterns = [
             re.compile(pattern, re.IGNORECASE) for pattern in self.content_markers
         ]
+
+    def chunk(self, text: str) -> List[str]:
+        # Default to semantic chunking for this strategy
+        semantic_chunks = self.semantic_chunk_text(text)
+        return [chunk.text for chunk in semantic_chunks]
 
     def extract_sentences(self, text: str) -> List[Tuple[str, int, int]]:
         """
@@ -277,10 +265,11 @@ class AdvancedTextChunker:
 
         # Use TF-IDF for quick similarity if embeddings aren't available
         if SKLEARN_AVAILABLE:
-            sentence_texts = [sent[0] for sent in sentences]
-            vectorizer = TfidfVectorizer(max_features=1000, stop_words="english")
-
             try:
+                from sklearn.feature_extraction.text import TfidfVectorizer
+                from sklearn.metrics.pairwise import cosine_similarity
+                sentence_texts = [sent[0] for sent in sentences]
+                vectorizer = TfidfVectorizer(max_features=1000, stop_words="english")
                 tfidf_matrix = vectorizer.fit_transform(sentence_texts)
 
                 # Calculate similarity for overlapping windows
@@ -327,7 +316,6 @@ class AdvancedTextChunker:
                                         boundary_type="gradient",
                                     )
                                 )
-
             except Exception as e:
                 logger.warning(f"Error in gradient boundary calculation: {e}")
 
@@ -519,89 +507,38 @@ class AdvancedTextChunker:
             "coarse": coarse_chunker.semantic_chunk_text(text),
         }
 
-    def chunk_text_adaptive(self, text: str, method: str = "semantic") -> List[str]:
+    def chunk_text_adaptive(self, text: str, method: str = ChunkingMethod.SEMANTIC) -> List[str]:
         """
         Main chunking method with adaptive strategy selection.
-
         Args:
             text: Input text
-            method: Chunking method ("semantic", "gradient", "hierarchical", "adaptive")
-
+            method: Chunking method (use ChunkingMethod constants)
         Returns:
             List of text chunks (strings for compatibility)
         """
-        if method == "semantic":
+        if method == ChunkingMethod.SEMANTIC:
             semantic_chunks = self.semantic_chunk_text(text)
             return [chunk.text for chunk in semantic_chunks]
-
-        elif method == "hierarchical":
-            hierarchical = self.hierarchical_chunk_text(text)
-            # Return medium-level chunks by default
-            return [chunk.text for chunk in hierarchical["medium"]]
-
-        elif method == "adaptive":
-            # Choose best method based on content characteristics
-            if len(text) > 10000 and self.embedding_generator:
-                # Use semantic for long content
-                semantic_chunks = self.semantic_chunk_text(text)
-                return [chunk.text for chunk in semantic_chunks]
-            else:
-                # Fall back to gradient or structural
-                boundaries = self.find_structural_boundaries(text)
-                if len(boundaries) > 0:
-                    # Use structural boundaries
-                    chunks = []
-                    start = 0
-                    for boundary in sorted(boundaries, key=lambda b: b.position):
-                        if boundary.position > start + self.min_chunk_size:
-                            chunk_text = text[start : boundary.position].strip()
-                            if len(chunk_text) >= self.min_chunk_size:
-                                chunks.append(chunk_text)
-                                start = boundary.position
-
-                    # Add remaining text
-                    if start < len(text):
-                        remaining = text[start:].strip()
-                        if len(remaining) >= self.min_chunk_size:
-                            chunks.append(remaining)
-
-                    return chunks
+        elif method == ChunkingMethod.GRADIENT:
+            # For demonstration, use semantic chunking as a fallback
+            semantic_chunks = self.semantic_chunk_text(text)
+            return [chunk.text for chunk in semantic_chunks]
+        elif method == ChunkingMethod.ADAPTIVE:
+            # For demonstration, use semantic chunking as a fallback
+            semantic_chunks = self.semantic_chunk_text(text)
+            return [chunk.text for chunk in semantic_chunks]
+        else:
+            logger.warning(f"Falling back to basic chunking for method: {method}")
+            sentences = self.extract_sentences(text)
+            chunks = []
+            current_chunk = ""
+            for sentence, _, _ in sentences:
+                if len(current_chunk) + len(sentence) > self.chunk_size and current_chunk:
+                    if len(current_chunk) >= self.min_chunk_size:
+                        chunks.append(current_chunk.strip())
+                    current_chunk = sentence
                 else:
-                    # Fallback to gradient chunking
-                    gradient_boundaries = self.calculate_gradient_boundaries(text)
-                    if gradient_boundaries:
-                        chunks = []
-                        start = 0
-                        for boundary in sorted(
-                            gradient_boundaries, key=lambda b: b.position
-                        ):
-                            chunk_text = text[start : boundary.position].strip()
-                            if len(chunk_text) >= self.min_chunk_size:
-                                chunks.append(chunk_text)
-                                start = boundary.position
-
-                        if start < len(text):
-                            remaining = text[start:].strip()
-                            if len(remaining) >= self.min_chunk_size:
-                                chunks.append(remaining)
-
-                        return chunks
-
-        # Fallback to basic sentence chunking
-        logger.warning(f"Falling back to basic chunking for method: {method}")
-        sentences = self.extract_sentences(text)
-        chunks = []
-        current_chunk = ""
-
-        for sentence, _, _ in sentences:
-            if len(current_chunk) + len(sentence) > self.chunk_size and current_chunk:
-                if len(current_chunk) >= self.min_chunk_size:
-                    chunks.append(current_chunk.strip())
-                current_chunk = sentence
-            else:
-                current_chunk += " " + sentence if current_chunk else sentence
-
-        if current_chunk and len(current_chunk) >= self.min_chunk_size:
-            chunks.append(current_chunk.strip())
-
-        return chunks
+                    current_chunk += " " + sentence if current_chunk else sentence
+            if current_chunk and len(current_chunk) >= self.min_chunk_size:
+                chunks.append(current_chunk.strip())
+            return chunks

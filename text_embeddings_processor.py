@@ -15,7 +15,7 @@ from datetime import datetime
 import hashlib
 from src.config.config import Config
 from src.storage.postgres import PostgresEmbeddingStorage
-from src.chunking.text_chunker import TextChunker
+from src.chunking.text_chunker import TextChunker, ChunkingMethod
 from src.embedding.ollama import OllamaEmbeddingGenerator
 
 
@@ -82,8 +82,14 @@ class TextEmbeddingsProcessor:
                 logger.error(f"Failed to create document record for {filepath}")
                 return False
 
-            # Chunk the text
-            chunks = self.chunker.chunk_text(content)
+            # Chunk the text (pass method if available in metadata)
+            method = None
+            if metadata and "chunking_method" in metadata:
+                method = metadata["chunking_method"]
+            if method:
+                chunks = self.chunker.chunk_text(content, method=method)
+            else:
+                chunks = self.chunker.chunk_text(content)
             logger.info(f"Created {len(chunks)} chunks")
 
             if not chunks:
@@ -121,8 +127,14 @@ def main():
     parser.add_argument("--overlap", type=int, help="Overlap between chunks")
     parser.add_argument(
         "--method",
-        choices=["sentences", "paragraphs", "semantic", "gradient", "adaptive"],
-        default="sentences",
+        choices=[
+            ChunkingMethod.SENTENCES,
+            ChunkingMethod.PARAGRAPHS,
+            ChunkingMethod.SEMANTIC,
+            ChunkingMethod.GRADIENT,
+            ChunkingMethod.ADAPTIVE,
+        ],
+        default=ChunkingMethod.SENTENCES,
         help="Chunking method",
     )
 

@@ -58,7 +58,7 @@ class TextChunker:
         """Lazy initialization of advanced chunker."""
         if self._advanced_chunker is None:
             try:
-                from advanced_chunking import AdvancedTextChunker
+                from src.chunking import AdvancedTextChunker
                 self._advanced_chunker = AdvancedTextChunker(
                     embedding_generator=self.embedding_generator,
                     chunk_size=self.chunk_size,

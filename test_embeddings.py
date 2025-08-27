@@ -183,7 +183,7 @@ def test_advanced_chunking():
     
     try:
         from text_embeddings_processor import TextChunker
-        from advanced_chunking import AdvancedTextChunker
+    from src.chunking import AdvancedTextChunker
         
         # Mock embedding generator for testing
         class MockEmbeddingGenerator:
